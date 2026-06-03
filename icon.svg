@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Тело — дневник">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34E0A1"/>
+      <stop offset="1" stop-color="#13B894"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="512" height="512" rx="112" ry="112" fill="url(#g)"/>
+  <g fill="#0A0E13">
+    <!-- dumbbell -->
+    <rect x="96"  y="216" width="24"  height="80"  rx="10"/>
+    <rect x="120" y="196" width="56"  height="120" rx="16"/>
+    <rect x="176" y="243" width="160" height="26"  rx="13"/>
+    <rect x="336" y="196" width="56"  height="120" rx="16"/>
+    <rect x="392" y="216" width="24"  height="80"  rx="10"/>
+  </g>
+</svg>

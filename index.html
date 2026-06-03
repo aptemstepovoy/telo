@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Тело — дневник</title>
+  <meta name="description" content="Личный дневник тренировок и питания: план от Клода, факт по подходам, экспорт обратно." />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="theme-color" content="#0A0E13" />
+
+  <!-- iOS home screen -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Тело" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <main id="view" aria-live="polite"></main>
+  </div>
+
+  <div id="timerbar" hidden></div>
+
+  <nav id="tabbar" aria-label="Навигация">
+    <button class="tab" data-act="tab" data-tab="today" aria-label="Сегодня">
+      <span class="tab-ico" aria-hidden="true">🏋️</span><span class="tab-lbl">Сегодня</span>
+    </button>
+    <button class="tab" data-act="tab" data-tab="week" aria-label="Неделя">
+      <span class="tab-ico" aria-hidden="true">🗓️</span><span class="tab-lbl">Неделя</span>
+    </button>
+    <button class="tab" data-act="tab" data-tab="data" aria-label="Данные">
+      <span class="tab-ico" aria-hidden="true">⚙️</span><span class="tab-lbl">Данные</span>
+    </button>
+  </nav>
+
+  <input id="fileInput" type="file" accept="application/json,.json" hidden />
+  <div id="toast" hidden></div>
+
+  <noscript>Для работы дневника нужен включённый JavaScript.</noscript>
+  <script src="app.js"></script>
+</body>
+</html>

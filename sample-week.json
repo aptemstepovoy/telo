@@ -1,0 +1,179 @@
+{
+  "schema": "fitness-diary",
+  "version": 1,
+  "week": {
+    "label": "Неделя 1 — пример",
+    "startDate": "2026-06-01",
+    "goal": "Дефицит ~500 ккал, сохранить силу. Белок 2г/кг."
+  },
+  "athlete": {
+    "name": "Артём",
+    "targets": { "weightKg": 90, "waistCm": 85 }
+  },
+  "trends": [
+    { "date": "2026-05-04", "weightKg": 99.5, "waistCm": 93 },
+    { "date": "2026-05-11", "weightKg": 98.2, "waistCm": 92 },
+    { "date": "2026-05-18", "weightKg": 97.1, "waistCm": 91 },
+    { "date": "2026-05-25", "weightKg": 95.9, "waistCm": 90.5 }
+  ],
+  "days": [
+    {
+      "date": "2026-06-01",
+      "training": {
+        "title": "Жим — грудь, плечи, трицепс",
+        "isRestDay": false,
+        "notes": "Разминка 8–10 мин кардио + суставная.",
+        "exercises": [
+          { "name": "Жим штанги лёжа", "targetSets": 4, "targetReps": "6-8", "targetWeight": 80, "targetRpe": 8, "tut": 30, "rest": 150, "restAfter": 180 },
+          { "name": "Жим гантелей под углом", "targetSets": 3, "targetReps": "8-10", "targetWeight": 28, "targetRpe": 8, "tut": 35, "rest": 120, "restAfter": 150 },
+          { "name": "Жим стоя", "targetSets": 3, "targetReps": "8-10", "targetWeight": 45, "targetRpe": 8, "tut": 35, "rest": 120, "restAfter": 150 },
+          { "name": "Разводка в кроссовере", "targetSets": 3, "targetReps": "12-15", "targetWeight": 12, "targetRpe": 9, "tut": 40, "rest": 75, "restAfter": 120 },
+          { "name": "Французский жим", "targetSets": 3, "targetReps": "10-12", "targetWeight": 30, "targetRpe": 9, "tut": 35, "rest": 75, "restAfter": 90 }
+        ]
+      },
+      "nutrition": {
+        "title": "Тренировочный день · 2200 ккал",
+        "summary": { "kcal": 2200, "protein": 185, "carbs": 210, "fat": 60 },
+        "meals": [
+          { "name": "Завтрак", "items": ["Овсянка 80 г", "Яйца 3 шт", "Банан"], "kcal": 560 },
+          { "name": "Обед", "items": ["Куриная грудка 200 г", "Рис 70 г (сухой)", "Овощи"], "kcal": 640 },
+          { "name": "Перекус", "items": ["Творог 200 г", "Орехи 20 г"], "kcal": 380 },
+          { "name": "Ужин", "items": ["Лосось 180 г", "Гречка 60 г", "Салат"], "kcal": 620 }
+        ]
+      }
+    },
+    {
+      "date": "2026-06-02",
+      "training": {
+        "title": "Тяга — спина, бицепс",
+        "isRestDay": false,
+        "notes": null,
+        "exercises": [
+          { "name": "Подтягивания", "targetSets": 4, "targetReps": "6-10", "targetWeight": 0, "targetRpe": 8, "tut": 30, "rest": 150, "restAfter": 180 },
+          { "name": "Тяга штанги в наклоне", "targetSets": 4, "targetReps": "8-10", "targetWeight": 70, "targetRpe": 8, "tut": 35, "rest": 120, "restAfter": 150 },
+          { "name": "Тяга верхнего блока", "targetSets": 3, "targetReps": "10-12", "targetWeight": 60, "targetRpe": 8, "tut": 40, "rest": 90, "restAfter": 120 },
+          { "name": "Тяга гантели одной рукой", "targetSets": 3, "targetReps": "10-12", "targetWeight": 32, "targetRpe": 8, "tut": 40, "rest": 90, "restAfter": 120 },
+          { "name": "Подъём штанги на бицепс", "targetSets": 3, "targetReps": "10-12", "targetWeight": 30, "targetRpe": 9, "tut": 35, "rest": 75, "restAfter": 90 }
+        ]
+      },
+      "nutrition": {
+        "title": "Тренировочный день · 2200 ккал",
+        "summary": { "kcal": 2200, "protein": 185, "carbs": 210, "fat": 60 },
+        "meals": [
+          { "name": "Завтрак", "items": ["Омлет из 4 яиц", "Цельнозерновой хлеб 2 ломтика"], "kcal": 520 },
+          { "name": "Обед", "items": ["Индейка 200 г", "Картофель 250 г", "Овощи"], "kcal": 660 },
+          { "name": "Перекус", "items": ["Протеин 1 порция", "Яблоко"], "kcal": 320 },
+          { "name": "Ужин", "items": ["Говядина 180 г", "Булгур 60 г", "Салат"], "kcal": 700 }
+        ]
+      }
+    },
+    {
+      "date": "2026-06-03",
+      "training": {
+        "title": "Ноги",
+        "isRestDay": false,
+        "notes": "Следи за техникой в приседе, не гонись за весом.",
+        "exercises": [
+          { "name": "Присед со штангой", "targetSets": 4, "targetReps": "6-8", "targetWeight": 100, "targetRpe": 8, "tut": 30, "rest": 180, "restAfter": 180 },
+          { "name": "Румынская тяга", "targetSets": 3, "targetReps": "8-10", "targetWeight": 90, "targetRpe": 8, "tut": 35, "rest": 150, "restAfter": 150 },
+          { "name": "Жим ногами", "targetSets": 3, "targetReps": "10-12", "targetWeight": 180, "targetRpe": 8, "tut": 40, "rest": 120, "restAfter": 120 },
+          { "name": "Сгибание ног в тренажёре", "targetSets": 3, "targetReps": "12-15", "targetWeight": 45, "targetRpe": 9, "tut": 40, "rest": 75, "restAfter": 90 },
+          { "name": "Подъём на носки", "targetSets": 4, "targetReps": "15-20", "targetWeight": 60, "targetRpe": 9, "tut": 45, "rest": 60, "restAfter": 60 }
+        ]
+      },
+      "nutrition": {
+        "title": "Тренировочный день · 2200 ккал",
+        "summary": { "kcal": 2200, "protein": 185, "carbs": 220, "fat": 58 },
+        "meals": [
+          { "name": "Завтрак", "items": ["Овсянка 80 г", "Сывороточный протеин", "Ягоды"], "kcal": 540 },
+          { "name": "Обед", "items": ["Куриная грудка 220 г", "Рис 80 г (сухой)"], "kcal": 680 },
+          { "name": "Перекус", "items": ["Греческий йогурт 250 г", "Мёд 1 ч.л."], "kcal": 300 },
+          { "name": "Ужин", "items": ["Треска 220 г", "Картофель 250 г", "Овощи"], "kcal": 640 }
+        ]
+      }
+    },
+    {
+      "date": "2026-06-04",
+      "training": { "title": "День отдыха", "isRestDay": true, "notes": "Прогулка 8–10 тыс. шагов. Растяжка 10 мин.", "exercises": [] },
+      "nutrition": {
+        "title": "День отдыха · 1900 ккал",
+        "summary": { "kcal": 1900, "protein": 180, "carbs": 150, "fat": 55 },
+        "meals": [
+          { "name": "Завтрак", "items": ["Яичница 3 яйца", "Авокадо 1/2"], "kcal": 470 },
+          { "name": "Обед", "items": ["Индейка 200 г", "Овощной салат", "Оливковое масло 1 ст.л."], "kcal": 520 },
+          { "name": "Перекус", "items": ["Творог 200 г"], "kcal": 240 },
+          { "name": "Ужин", "items": ["Куриная грудка 200 г", "Овощи гриль"], "kcal": 470 }
+        ]
+      }
+    },
+    {
+      "date": "2026-06-05",
+      "training": {
+        "title": "Верх тела (общий)",
+        "isRestDay": false,
+        "notes": null,
+        "exercises": [
+          { "name": "Жим гантелей лёжа", "targetSets": 4, "targetReps": "8-10", "targetWeight": 30, "targetRpe": 8, "tut": 35, "rest": 120, "restAfter": 150 },
+          { "name": "Тяга в наклоне", "targetSets": 4, "targetReps": "8-10", "targetWeight": 65, "targetRpe": 8, "tut": 35, "rest": 120, "restAfter": 150 },
+          { "name": "Махи гантелями в стороны", "targetSets": 4, "targetReps": "12-15", "targetWeight": 10, "targetRpe": 9, "tut": 40, "rest": 60, "restAfter": 90 },
+          { "name": "Молотковые сгибания", "targetSets": 3, "targetReps": "10-12", "targetWeight": 14, "targetRpe": 9, "tut": 35, "rest": 60, "restAfter": 75 },
+          { "name": "Разгибание на блоке", "targetSets": 3, "targetReps": "12-15", "targetWeight": 25, "targetRpe": 9, "tut": 40, "rest": 60, "restAfter": 60 }
+        ]
+      },
+      "nutrition": {
+        "title": "Тренировочный день · 2200 ккал",
+        "summary": { "kcal": 2200, "protein": 185, "carbs": 210, "fat": 60 },
+        "meals": [
+          { "name": "Завтрак", "items": ["Гречка 70 г", "Яйца 3 шт"], "kcal": 540 },
+          { "name": "Обед", "items": ["Куриная грудка 200 г", "Паста 70 г (сухая)"], "kcal": 660 },
+          { "name": "Перекус", "items": ["Протеин", "Орехи 20 г"], "kcal": 320 },
+          { "name": "Ужин", "items": ["Лосось 180 г", "Рис 60 г", "Салат"], "kcal": 680 }
+        ]
+      }
+    },
+    {
+      "date": "2026-06-06",
+      "training": {
+        "title": "Низ тела + кор",
+        "isRestDay": false,
+        "notes": "В конце 10 мин кардио в лёгком темпе.",
+        "exercises": [
+          { "name": "Фронтальный присед", "targetSets": 3, "targetReps": "8-10", "targetWeight": 70, "targetRpe": 8, "tut": 35, "rest": 150, "restAfter": 150 },
+          { "name": "Выпады с гантелями", "targetSets": 3, "targetReps": "10-12", "targetWeight": 20, "targetRpe": 8, "tut": 40, "rest": 90, "restAfter": 120 },
+          { "name": "Гиперэкстензия", "targetSets": 3, "targetReps": "12-15", "targetWeight": 10, "targetRpe": 8, "tut": 40, "rest": 75, "restAfter": 90 },
+          { "name": "Планка", "targetSets": 3, "targetReps": "45-60 сек", "targetWeight": 0, "targetRpe": 8, "tut": 50, "rest": 60, "restAfter": 60 }
+        ]
+      },
+      "nutrition": {
+        "title": "Тренировочный день · 2100 ккал",
+        "summary": { "kcal": 2100, "protein": 180, "carbs": 195, "fat": 58 },
+        "meals": [
+          { "name": "Завтрак", "items": ["Овсянка 70 г", "Яйца 3 шт", "Банан"], "kcal": 540 },
+          { "name": "Обед", "items": ["Индейка 200 г", "Картофель 250 г"], "kcal": 620 },
+          { "name": "Перекус", "items": ["Творог 200 г", "Ягоды"], "kcal": 280 },
+          { "name": "Ужин", "items": ["Куриная грудка 200 г", "Гречка 60 г", "Овощи"], "kcal": 600 }
+        ]
+      }
+    },
+    {
+      "date": "2026-06-07",
+      "training": { "title": "День отдыха", "isRestDay": true, "notes": "Полный отдых или лёгкая прогулка.", "exercises": [] },
+      "nutrition": {
+        "title": "День отдыха · 1900 ккал",
+        "summary": { "kcal": 1900, "protein": 180, "carbs": 150, "fat": 55 },
+        "meals": [
+          { "name": "Завтрак", "items": ["Омлет 3 яйца", "Овощи"], "kcal": 420 },
+          { "name": "Обед", "items": ["Рыба 200 г", "Салат", "Масло 1 ст.л."], "kcal": 520 },
+          { "name": "Перекус", "items": ["Греческий йогурт 250 г"], "kcal": 260 },
+          { "name": "Ужин", "items": ["Говядина 180 г", "Овощи гриль"], "kcal": 540 }
+        ]
+      }
+    }
+  ],
+  "shopping": [
+    { "category": "Белок", "items": ["Куриная грудка 1.5 кг", "Индейка 1 кг", "Говядина 600 г", "Лосось 400 г", "Треска 600 г", "Яйца 30 шт", "Творог 1 кг", "Греческий йогурт 750 г", "Сывороточный протеин 1 банка"] },
+    { "category": "Крупы и углеводы", "items": ["Овсянка 1 кг", "Рис 1 кг", "Гречка 1 кг", "Булгур 500 г", "Картофель 2 кг", "Паста 500 г", "Цельнозерновой хлеб 1 шт"] },
+    { "category": "Овощи и фрукты", "items": ["Бананы 7 шт", "Яблоки 5 шт", "Ягоды 400 г", "Авокадо 2 шт", "Овощи для салата", "Овощи для гриля"] },
+    { "category": "Прочее", "items": ["Орехи 200 г", "Оливковое масло", "Мёд"] }
+  ]
+}
