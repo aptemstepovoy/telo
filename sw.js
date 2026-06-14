@@ -2,7 +2,7 @@
 // Код (HTML/JS/CSS) грузится network-first: при наличии сети — последняя версия,
 // кэш используется как офлайн-резерв. Картинки/JSON — cache-first.
 // При изменении файлов поднимите версию кэша.
-const CACHE = 'telo-v3';
+const CACHE = 'telo-v4';
 const ASSETS = [
   './',
   './index.html',

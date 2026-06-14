@@ -49,7 +49,7 @@
       weeks: {},
       currentWeekStart: null,
       seededTrends: {}, // date -> {weightKg, waistCm} (история для графиков с других устройств)
-      settings: { prepDefault: 5, restDefault: 120, autoStartRest: true, sound: true, vibrate: true }
+      settings: { prepDefault: 5, restDefault: 120, autoStartRest: true, sound: true, vibrate: true, alarmMode: true, keepAwake: true }
     };
   }
   var state = load();
@@ -150,7 +150,8 @@
         meals: Array.isArray(n.meals) ? n.meals.map(normMeal) : [],
         notes: strOrNull(n.notes)
       },
-      body: { weightKg: numOrNull(body.weightKg), waistCm: numOrNull(body.waistCm) }
+      body: { weightKg: numOrNull(body.weightKg), waistCm: numOrNull(body.waistCm) },
+      userNote: strOrNull(d.userNote)
     };
   }
   function itemText(it) {
@@ -370,6 +371,11 @@
       day.training.exercises.forEach(function (ex) { h += exerciseHTML(di, ex, day.date); });
     }
     h += nutritionHTML(day.nutrition);
+
+    h += '<div class="section-title">Заметки дня</div><div class="card">' +
+      '<textarea class="daynote" data-act="notef" data-d="' + di + '" rows="4" ' +
+      'placeholder="Как прошла тренировка? Что по питанию — что сделал/не сделал, сколько съел?">' +
+      esc(day.userNote || '') + '</textarea></div>';
     return h;
   }
 
@@ -611,11 +617,13 @@
       '<div class="field-row"><div class="k">Отдых по умолчанию, сек<small>если в плане не задан</small></div><input class="num-input" inputmode="numeric" data-setting="restDefault" value="' + s.restDefault + '"></div>' +
       toggleHTML('autoStartRest', 'Авто-таймер отдыха', 'после ручной отметки ✓', s.autoStartRest) +
       toggleHTML('sound', 'Звук таймера', '', s.sound) +
+      toggleHTML('alarmMode', 'Режим будильника', 'громкий сигнал, перебивает музыку, экран блокировки', s.alarmMode) +
+      toggleHTML('keepAwake', 'Не гасить экран', 'во время подхода и отдыха', s.keepAwake) +
       toggleHTML('vibrate', 'Вибрация', 'если поддерживается', s.vibrate) + '</div>';
 
     if (deferredInstall) h += '<div class="card"><button class="btn accent block" data-act="install">⬇ Установить приложение</button></div>';
     h += '<div class="card"><button class="btn danger block" data-act="clear-all">Удалить все данные</button></div>';
-    h += '<div style="text-align:center;color:var(--muted-2);font-size:12px;margin:8px 0 0">Тело · дневник · v2 · данные хранятся только на этом устройстве</div>';
+    h += '<div style="text-align:center;color:var(--muted-2);font-size:12px;margin:8px 0 0">Тело · дневник · v3 · данные хранятся только на этом устройстве</div>';
     return h;
   }
   function toggleHTML(key, label, hint, on) {
@@ -636,6 +644,9 @@
     } else if (act === 'bodyf') {
       var wk2 = currentWeek(); if (!wk2) return;
       wk2.days[+t.getAttribute('data-d')].body[t.getAttribute('data-f')] = numOrNull(t.value); saveSoon();
+    } else if (act === 'notef') {
+      var wk3 = currentWeek(); if (!wk3) return;
+      wk3.days[+t.getAttribute('data-d')].userNote = t.value; saveSoon();
     }
   });
 
@@ -741,34 +752,145 @@
     }
   });
 
-  /* ---------- нижняя панель: управляемый подход + отдых ---------- */
-  var Bar = {
-    el: $('#timerbar'), audio: null, iv: null, phase: null,
-    d: null, exId: null, s: null, exName: '', isLast: false,
-    prepLeft: 0, workElapsed: 0, workTarget: 0, workBeeped: false,
-    restLeft: 0, restTotal: 0, restLabel: '', hideT: null,
+  /* ---------- тихий WAV для удержания аудио-сессии (экран блокировки iOS) ---------- */
+  function silentWavUrl(seconds) {
+    var sr = 8000, n = sr * seconds, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf), p = 0;
+    function s(str) { for (var i = 0; i < str.length; i++) v.setUint8(p++, str.charCodeAt(i)); }
+    function u32(x) { v.setUint32(p, x, true); p += 4; }
+    function u16(x) { v.setUint16(p, x, true); p += 2; }
+    s('RIFF'); u32(36 + n * 2); s('WAVE'); s('fmt '); u32(16); u16(1); u16(1); u32(sr); u32(sr * 2); u16(2); u16(16); s('data'); u32(n * 2);
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+  }
 
-    loop: function () { var self = this; clearInterval(this.iv); this.iv = setInterval(function () { self.tick(); }, 1000); },
+  /* ---------- звук: громкий «будильник», заранее запланированный (работает и в фоне) ---------- */
+  var Audio2 = {
+    ctx: null, scheduled: [], keepEl: null, keepUrl: null,
+    on: function () { return state.settings.sound; },
+    ensure: function () {
+      if (!this.on()) return;
+      try {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      } catch (e) {}
+      if (state.settings.alarmMode && navigator.audioSession) { try { navigator.audioSession.type = 'playback'; } catch (e) {} }
+    },
+    keepAliveStart: function () {
+      if (!state.settings.alarmMode || !this.on()) return;
+      try {
+        if (!this.keepUrl) this.keepUrl = silentWavUrl(1);
+        if (!this.keepEl) { this.keepEl = new Audio(this.keepUrl); this.keepEl.loop = true; this.keepEl.volume = 0.02; }
+        var pr = this.keepEl.play(); if (pr && pr.catch) pr.catch(function () {});
+      } catch (e) {}
+    },
+    keepAliveStop: function () { try { if (this.keepEl) this.keepEl.pause(); } catch (e) {} },
+    release: function () { this.keepAliveStop(); if (navigator.audioSession) { try { navigator.audioSession.type = 'auto'; } catch (e) {} } },
+    tone: function (when, freq, dur, vol, type) {
+      if (!this.on() || !this.ctx) return;
+      try {
+        var o = this.ctx.createOscillator(), g = this.ctx.createGain();
+        o.type = type || 'square'; o.frequency.value = freq;
+        o.connect(g); g.connect(this.ctx.destination);
+        g.gain.setValueAtTime(0.0001, when);
+        g.gain.exponentialRampToValueAtTime(vol, when + 0.012);
+        g.gain.setValueAtTime(vol, when + dur - 0.03);
+        g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+        o.start(when); o.stop(when + dur + 0.03);
+        this.scheduled.push(o);
+      } catch (e) {}
+    },
+    alarmAt: function (offsetSec, kind) {
+      if (!this.on() || !this.ctx) return;
+      var t0 = this.ctx.currentTime + Math.max(0, offsetSec);
+      if (kind === 'stop') {
+        for (var i = 0; i < 4; i++) { var b = t0 + i * 0.42; this.tone(b, 988, 0.15, 0.85, 'square'); this.tone(b + 0.19, 1319, 0.17, 0.85, 'square'); }
+      } else {
+        this.tone(t0, 1175, 0.16, 0.85, 'square'); this.tone(t0 + 0.22, 1568, 0.22, 0.85, 'square');
+      }
+    },
+    tickAt: function (offsetSec) { if (this.on() && this.ctx) this.tone(this.ctx.currentTime + Math.max(0, offsetSec), 740, 0.07, 0.4, 'square'); },
+    cancel: function () { this.scheduled.forEach(function (o) { try { o.stop(); o.disconnect(); } catch (e) {} }); this.scheduled = []; },
+    buzz: function () { if (state.settings.vibrate && navigator.vibrate) { try { navigator.vibrate([200, 90, 200, 90, 350]); } catch (e) {} } }
+  };
+
+  /* ---------- не гасить экран во время таймера ---------- */
+  var Wake = {
+    lock: null,
+    request: function () {
+      if (!state.settings.keepAwake || !('wakeLock' in navigator)) return;
+      try {
+        navigator.wakeLock.request('screen').then(function (l) {
+          Wake.lock = l;
+          if (l.addEventListener) l.addEventListener('release', function () { Wake.lock = null; });
+        }).catch(function () {});
+      } catch (e) {}
+    },
+    release: function () { try { if (this.lock) { this.lock.release(); this.lock = null; } } catch (e) {} }
+  };
+
+  /* ---------- плитка таймера на экране блокировки ---------- */
+  var Media = {
+    setup: function () {
+      if (!('mediaSession' in navigator)) return;
+      try {
+        navigator.mediaSession.setActionHandler('pause', function () { Bar.hide(); });
+        navigator.mediaSession.setActionHandler('stop', function () { Bar.hide(); });
+        navigator.mediaSession.setActionHandler('play', function () {});
+        navigator.mediaSession.setActionHandler('nexttrack', function () { if (Bar.phase === 'rest') Bar.hide(); });
+      } catch (e) {}
+    },
+    meta: function (title, sub) {
+      if (!('mediaSession' in navigator) || !window.MediaMetadata) return;
+      try { navigator.mediaSession.metadata = new MediaMetadata({ title: title, artist: sub || 'Тело', album: 'Тренировка' }); navigator.mediaSession.playbackState = 'playing'; } catch (e) {}
+    },
+    pos: function (dur, posn) {
+      if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+      try { var d = Math.max(1, dur); navigator.mediaSession.setPositionState({ duration: d, position: Math.min(Math.max(0, posn), d), playbackRate: 1 }); } catch (e) {}
+    },
+    clear: function () { if (!('mediaSession' in navigator)) return; try { navigator.mediaSession.playbackState = 'none'; navigator.mediaSession.metadata = null; } catch (e) {} }
+  };
+
+  /* ---------- нижняя панель: управляемый подход + отдых (на метках времени) ---------- */
+  var Bar = {
+    el: $('#timerbar'), iv: null, phase: null,
+    d: null, exId: null, s: null, exName: '', isLast: false,
+    endAt: 0, startAt: 0, total: 0, target: 0, restLabel: '', hideT: null,
+
+    now: function () { return Date.now(); },
+    loop: function () { var self = this; clearInterval(this.iv); this.iv = setInterval(function () { self.tick(); }, 250); },
     ctxEx: function () { var wk = currentWeek(); if (!wk) return null; var dd = wk.days[this.d]; return dd ? exById(dd, this.exId) : null; },
+    begin: function () { Audio2.ensure(); Audio2.cancel(); Audio2.keepAliveStart(); Media.setup(); Wake.request(); },
+    schedTicks: function (endSec) { for (var k = 3; k >= 1; k--) if (endSec - k > 0.2) Audio2.tickAt(endSec - k); },
+    leftSec: function () { return Math.max(0, Math.ceil((this.endAt - this.now()) / 1000)); },
+    workSec: function () { return Math.max(0, Math.floor((this.now() - this.startAt) / 1000)); },
 
     startGuided: function (dIdx, ex, sIdx) {
       if (!ex) return;
-      this.ensureAudio();
       this.d = dIdx; this.exId = ex.id; this.s = sIdx; this.exName = ex.name;
       this.isLast = sIdx === ex.sets.length - 1;
-      this.workTarget = ex.tut || 0;
+      this.target = ex.tut || 0;
+      this.begin();
       var prep = ex.prep != null ? ex.prep : state.settings.prepDefault;
-      this.bipGo();
-      if (prep > 0) { this.phase = 'prep'; this.prepLeft = prep; this.draw(); this.loop(); }
-      else this.toWork();
+      if (prep > 0) {
+        this.phase = 'prep'; this.total = prep; this.endAt = this.now() + prep * 1000;
+        Audio2.alarmAt(prep, 'go'); this.schedTicks(prep);
+        this.draw(); this.loop();
+      } else this.toWork(false);
     },
-    toWork: function () { this.phase = 'work'; this.workElapsed = 0; this.workBeeped = false; this.bipGo(); this.draw(); this.loop(); },
+    toWork: function (fromPrep) {
+      this.phase = 'work'; this.startAt = this.now();
+      if (!fromPrep) { Audio2.cancel(); Audio2.alarmAt(0, 'go'); }
+      Audio2.keepAliveStart();
+      if (this.target) { Audio2.alarmAt(this.target, 'stop'); this.schedTicks(this.target); }
+      this.draw(); this.loop();
+    },
     finishWork: function () {
       var ex = this.ctxEx();
+      Audio2.cancel();
       if (!ex) { this.hide(); return; }
       var st = ex.sets[this.s];
       if (st) {
-        st.tut = this.workElapsed || null;
+        var el = Math.round((this.now() - this.startAt) / 1000);
+        st.tut = el || null;
         if (!st.done) {
           st.done = true;
           if (st.reps == null && ex.targetReps && /^\d+$/.test(ex.targetReps)) st.reps = +ex.targetReps;
@@ -779,60 +901,66 @@
       save(); render(true);
       this.toRest(sec, (this.isLast ? 'Отдых перед след. упражнением' : 'Отдых') + (this.exName ? ' · ' + this.exName : ''));
     },
-    toRest: function (sec, label) { this.phase = 'rest'; this.restTotal = Math.max(1, Math.round(sec)); this.restLeft = this.restTotal; this.restLabel = label; this.draw(); this.loop(); },
-    startRest: function (sec, label) { this.ensureAudio(); this.d = null; this.exId = null; this.exName = ''; this.toRest(Math.max(5, Math.round(sec || state.settings.restDefault)), label || 'Отдых'); },
+    toRest: function (sec, label) {
+      this.phase = 'rest'; this.total = Math.max(1, Math.round(sec)); this.endAt = this.now() + this.total * 1000; this.restLabel = label;
+      Audio2.cancel(); Audio2.keepAliveStart();
+      Audio2.alarmAt(this.total, 'go'); this.schedTicks(this.total);
+      this.draw(); this.loop();
+    },
+    startRest: function (sec, label) { this.d = null; this.exId = null; this.exName = ''; this.begin(); this.toRest(Math.max(5, Math.round(sec || state.settings.restDefault)), label || 'Отдых'); },
 
     tick: function () {
-      if (this.phase === 'prep') { this.prepLeft--; if (this.prepLeft <= 0) { this.toWork(); return; } if (this.prepLeft <= 3) this.bipTick(); this.draw(); }
-      else if (this.phase === 'work') {
-        this.workElapsed++;
-        if (this.workTarget) {
-          var rem = this.workTarget - this.workElapsed;
-          if (rem <= 0 && !this.workBeeped) { this.workBeeped = true; this.bipStop(); this.buzz(); }
-          else if (rem > 0 && rem <= 3) this.bipTick();
-        }
-        this.draw();
-      }
-      else if (this.phase === 'rest') { this.restLeft--; if (this.restLeft <= 0) { this.restDone(); return; } if (this.restLeft <= 3) this.bipTick(); this.draw(); }
+      if (this.phase === 'prep') { if (this.leftSec() <= 0) { this.toWork(true); return; } this.draw(); }
+      else if (this.phase === 'work') { this.draw(); }
+      else if (this.phase === 'rest') { if (this.leftSec() <= 0) { this.restDone(); return; } this.draw(); }
     },
-    restDone: function () { clearInterval(this.iv); this.iv = null; this.phase = 'done'; this.bipStop(); this.buzz(); this.draw(); var self = this; clearTimeout(this.hideT); this.hideT = setTimeout(function () { self.hide(); }, 5000); },
-    addRest: function (s) { if (this.phase === 'rest') { this.restLeft += s; this.restTotal = Math.max(this.restTotal, this.restLeft); this.draw(); } },
-    hide: function () { clearInterval(this.iv); this.iv = null; clearTimeout(this.hideT); this.phase = null; this.el.hidden = true; this.el.className = ''; },
+    restDone: function () { clearInterval(this.iv); this.iv = null; this.phase = 'done'; Audio2.buzz(); this.draw(); var self = this; clearTimeout(this.hideT); this.hideT = setTimeout(function () { self.hide(); }, 6000); },
+    addRest: function (s) {
+      if (this.phase !== 'rest') return;
+      this.endAt += s * 1000; this.total += s;
+      Audio2.cancel(); var left = (this.endAt - this.now()) / 1000; Audio2.alarmAt(left, 'go'); this.schedTicks(left); this.draw();
+    },
+    hide: function () { clearInterval(this.iv); this.iv = null; clearTimeout(this.hideT); this.phase = null; Audio2.cancel(); Audio2.release(); Wake.release(); Media.clear(); this.el.hidden = true; this.el.className = ''; },
+    resync: function () {
+      if (!this.phase) return;
+      if (this.phase === 'prep' && this.leftSec() <= 0) { this.toWork(true); return; }
+      if (this.phase === 'rest' && this.leftSec() <= 0) { this.restDone(); return; }
+      if (this.phase !== 'done') { Wake.request(); this.loop(); }
+      this.draw();
+    },
 
-    fmt: function (s) { s = Math.max(0, s); var m = Math.floor(s / 60); return m + ':' + pad(s % 60); },
+    fmt: function (s) { s = Math.max(0, Math.round(s)); var m = Math.floor(s / 60); return m + ':' + pad(s % 60); },
     draw: function () {
       var p = this.phase; if (!p) { this.el.hidden = true; return; }
       this.el.hidden = false; this.el.className = p;
       var inner = '';
       if (p === 'prep') {
-        inner = '<div class="timer-time">' + this.prepLeft + '</div>' +
-          '<div class="timer-mid"><div class="timer-lbl">Приготовься' + (this.exName ? ' · ' + esc(this.exName) : '') + '</div><div class="timer-sub">подход ' + (this.s + 1) + '</div></div>' +
+        var lp = this.leftSec(); var tt = 'Приготовься' + (this.exName ? ' · ' + this.exName : '');
+        inner = '<div class="timer-time">' + lp + '</div><div class="timer-mid"><div class="timer-lbl">' + esc(tt) + '</div><div class="timer-sub">подход ' + (this.s + 1) + '</div></div>' +
           '<button class="btn small" data-act="guide-work">Старт</button><button class="btn small" data-act="guide-cancel">✕</button>';
+        Media.meta(tt, this.fmt(lp)); Media.pos(this.total, this.total - lp);
       } else if (p === 'work') {
-        var reached = this.workTarget && this.workElapsed >= this.workTarget;
-        var frac = this.workTarget ? Math.min(1, this.workElapsed / this.workTarget) : 0;
-        inner = '<div class="timer-time">' + this.fmt(this.workElapsed) + '</div>' +
-          '<div class="timer-mid"><div class="timer-lbl">Под нагрузкой' + (this.exName ? ' · ' + esc(this.exName) : '') + '</div>' +
-          (this.workTarget ? '<div class="timer-bar"><i style="width:' + (frac * 100).toFixed(0) + '%"></i></div>' + (reached ? '<div class="timer-sub">цель достигнута — заканчивай</div>' : '<div class="timer-sub">цель ' + this.workTarget + 'с</div>') : '<div class="timer-sub">секундомер</div>') +
+        var el = this.workSec(); var reached = this.target && el >= this.target; var frac = this.target ? Math.min(1, el / this.target) : 0;
+        var tw = 'Под нагрузкой' + (this.exName ? ' · ' + this.exName : '');
+        inner = '<div class="timer-time">' + this.fmt(el) + '</div><div class="timer-mid"><div class="timer-lbl">' + esc(tw) + '</div>' +
+          (this.target ? '<div class="timer-bar"><i style="width:' + (frac * 100).toFixed(0) + '%"></i></div>' + (reached ? '<div class="timer-sub">цель достигнута — заканчивай</div>' : '<div class="timer-sub">цель ' + this.target + 'с</div>') : '<div class="timer-sub">секундомер</div>') +
           '</div><button class="btn small go" data-act="guide-done">Готово ✓</button><button class="btn small" data-act="guide-cancel">✕</button>';
+        Media.meta(tw, this.fmt(el)); Media.pos(this.target || (el + 1), el);
       } else if (p === 'rest') {
-        var frac2 = this.restTotal ? this.restLeft / this.restTotal : 0;
-        inner = '<div class="timer-time">' + this.fmt(this.restLeft) + '</div>' +
-          '<div class="timer-mid"><div class="timer-lbl">' + esc(this.restLabel || 'Отдых') + '</div><div class="timer-bar"><i style="width:' + (frac2 * 100).toFixed(1) + '%"></i></div></div>' +
+        var lr = this.leftSec(); var frac2 = this.total ? lr / this.total : 0;
+        inner = '<div class="timer-time">' + this.fmt(lr) + '</div><div class="timer-mid"><div class="timer-lbl">' + esc(this.restLabel || 'Отдых') + '</div><div class="timer-bar"><i style="width:' + (frac2 * 100).toFixed(1) + '%"></i></div></div>' +
           '<button class="btn small" data-act="timer-add">+15с</button><button class="btn small" data-act="timer-skip">Стоп</button>';
+        Media.meta(this.restLabel || 'Отдых', this.fmt(lr)); Media.pos(this.total, this.total - lr);
       } else {
         inner = '<div class="timer-time">Го!</div><div class="timer-mid"><div class="timer-lbl">Отдых окончен' + (this.exName ? ' · ' + esc(this.exName) : '') + '</div></div><button class="btn small" data-act="timer-skip">Ок</button>';
       }
       this.el.innerHTML = '<div class="timer-inner">' + inner + '</div>';
-    },
-
-    ensureAudio: function () { if (!state.settings.sound) return; try { if (!this.audio) this.audio = new (window.AudioContext || window.webkitAudioContext)(); if (this.audio.state === 'suspended') this.audio.resume(); } catch (e) {} },
-    tone: function (freq, dur, when, vol) { try { var ctx = this.audio; if (!ctx) return; var o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(ctx.destination); var t = ctx.currentTime + (when || 0); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol || 0.3, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); o.start(t); o.stop(t + dur + 0.02); } catch (e) {} },
-    bipTick: function () { if (state.settings.sound) { this.ensureAudio(); this.tone(660, 0.08, 0, 0.15); } },
-    bipGo: function () { if (state.settings.sound) { this.ensureAudio(); this.tone(880, 0.12, 0, 0.25); } },
-    bipStop: function () { if (state.settings.sound) { this.ensureAudio(); this.tone(880, 0.15, 0, 0.3); this.tone(880, 0.15, 0.18, 0.3); this.tone(1175, 0.2, 0.36, 0.3); } },
-    buzz: function () { if (state.settings.vibrate && navigator.vibrate) { try { navigator.vibrate([120, 60, 120, 60, 220]); } catch (e) {} } }
+    }
   };
+
+  // пересчёт при возврате (разблокировали экран / вкладка снова активна)
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) Bar.resync(); });
+  window.addEventListener('focus', function () { Bar.resync(); });
 
   /* ---------- toast ---------- */
   var toastT = null;
@@ -886,9 +1014,9 @@
     '- По таймингам у каждого упражнения: "tut" — время под нагрузкой (сек/подход), "rest" — отдых между подходами (сек), "restAfter" — отдых между упражнениями (сек).',
     '- "targetReps" — строка ("8-10" или "12"). Вес/RPE/tut/rest — числа или null.',
     '- "shopping" — список покупок на неделю (сгруппируй по категориям), посчитай количества из плана питания.',
-    '- Поля факта ("sets", "body") НЕ заполняй — это сделаю я в приложении.',
+    '- Поля факта ("sets", "body", "userNote") НЕ заполняй — это сделаю я в приложении. "userNote" — мои свободные заметки за день (как прошла тренировка, что по питанию, сколько ел).',
     '- Питание — только для просмотра (без отметок).',
-    '- Когда пришлю экспорт за неделю (тот же JSON с фактом + блок "trends" с динамикой веса/талии) — проанализируй факт vs план и выдай следующую неделю в этом же формате.'
+    '- Когда пришлю экспорт за неделю (тот же JSON с фактом, моими заметками "userNote" по дням и блоком "trends" — динамика веса/талии) — учти заметки, проанализируй факт vs план и выдай следующую неделю в этом же формате.'
   ].join('\n');
 
   /* ---------- старт ---------- */
